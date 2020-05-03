@@ -298,9 +298,9 @@ void ServiceNode::bootstrap_data() {
 
     std::vector<std::pair<std::string, uint16_t>> seed_nodes;
     if (loki::is_mainnet()) {
-        seed_nodes = {{{"storage.seed1.loki.network", 22023},
-                       {"storage.seed2.loki.network", 38157},
-                       {"imaginary.stream", 38157}}};
+        seed_nodes = {{{"seed.coinicles.tech", 32023},
+                       {"public.coinicles.tech", 32023}
+                       }};
     } else {
         seed_nodes = {{{"storage.testnetseed1.loki.network", 38157}}};
     }
