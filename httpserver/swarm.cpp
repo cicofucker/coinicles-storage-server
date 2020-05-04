@@ -6,7 +6,6 @@
 
 #include <stdlib.h>
 #include <unordered_map>
-#include <ostream>
 
 #include "utils.hpp"
 
@@ -20,24 +19,6 @@ static bool swarm_exists(const all_swarms_t& all_swarms,
         [&swarm](const SwarmInfo& si) { return si.swarm_id == swarm; });
 
     return it != all_swarms.end();
-}
-
-void debug_print(std::ostream& os, const block_update_t& bu) {
-
-    os << "Block update: {\n";
-    os << "     height: " << bu.height << '\n';
-    os << "     block hash: " << bu.block_hash << '\n';
-    os << "     hardfork: " << bu.hardfork << '\n';
-    os << "     swarms: [\n";
-
-    for (const SwarmInfo &swarm : bu.swarms) {
-        os << "         {\n";
-        os << "             id: " << swarm.swarm_id << '\n';
-        os << "         }\n";
-    }
-
-    os << "     ]\n";
-    os << "}\n";
 }
 
 Swarm::~Swarm() = default;
@@ -151,8 +132,6 @@ static all_swarms_t apply_ips(const all_swarms_t& swarms_to_keep,
 
     all_swarms_t result_swarms = swarms_to_keep;
     const auto other_snode_map = get_snode_map_from_swarms(other_swarms);
-
-    int updates_count = 0;
     for (auto& swarm : result_swarms) {
         for (auto& snode : swarm.snodes) {
             const auto other_snode_it =
@@ -162,58 +141,48 @@ static all_swarms_t apply_ips(const all_swarms_t& swarms_to_keep,
                 // Keep swarms_to_keep but don't overwrite with default IPs
                 if (snode.ip() == "0.0.0.0") {
                     snode.set_ip(other_snode.ip());
-                    updates_count++;
                 }
             }
         }
     }
-
-    LOKI_LOG(debug, "Updated {} entries from lokid", updates_count);
     return result_swarms;
 }
 
 void Swarm::apply_swarm_changes(const all_swarms_t& new_swarms) {
-
-    LOKI_LOG(trace, "Applying swarm changes");
 
     all_valid_swarms_ = apply_ips(new_swarms, all_valid_swarms_);
 }
 
 void Swarm::update_state(const all_swarms_t& swarms,
                          const std::vector<sn_record_t>& decommissioned,
-                         const SwarmEvents& events, bool active) {
+                         const SwarmEvents& events) {
 
-    if (active) {
-
-        // The following only makes sense for active nodes in a swarm
-
-        if (events.dissolved) {
-            LOKI_LOG(info, "EVENT: our old swarm got DISSOLVED!");
-        }
-
-        for (const sn_record_t& sn : events.new_snodes) {
-            LOKI_LOG(info, "EVENT: detected new SN: {}", sn);
-        }
-
-        for (swarm_id_t swarm : events.new_swarms) {
-            LOKI_LOG(info, "EVENT: detected a new swarm: {}", swarm);
-        }
-
-        apply_swarm_changes(swarms);
-
-        const auto& members = events.our_swarm_members;
-
-        /// sanity check
-        if (members.empty())
-            return;
-
-        swarm_peers_.clear();
-        swarm_peers_.reserve(members.size() - 1);
-
-        std::copy_if(
-            members.begin(), members.end(), std::back_inserter(swarm_peers_),
-            [this](const sn_record_t& record) { return record != our_address_; });
+    if (events.dissolved) {
+        LOKI_LOG(info, "EVENT: our old swarm got DISSOLVED!");
     }
+
+    for (const sn_record_t& sn : events.new_snodes) {
+        LOKI_LOG(info, "EVENT: detected new SN: {}", sn);
+    }
+
+    for (swarm_id_t swarm : events.new_swarms) {
+        LOKI_LOG(info, "EVENT: detected a new swarm: {}", swarm);
+    }
+
+    apply_swarm_changes(swarms);
+
+    const auto& members = events.our_swarm_members;
+
+    /// sanity check
+    if (members.empty())
+        return;
+
+    swarm_peers_.clear();
+    swarm_peers_.reserve(members.size() - 1);
+
+    std::copy_if(
+        members.begin(), members.end(), std::back_inserter(swarm_peers_),
+        [this](const sn_record_t& record) { return record != our_address_; });
 
     // Store a copy of every node in a separate data structure
     all_funded_nodes_.clear();
@@ -239,41 +208,6 @@ boost::optional<sn_record_t> Swarm::choose_funded_node() const {
 
     // Note: this can return our own node which should be fine
     return all_funded_nodes_[idx];
-}
-
-boost::optional<sn_record_t> Swarm::find_node_by_port(uint16_t port) const {
-
-    for (const auto &sn : all_funded_nodes_) {
-        if (sn.port() == port) {
-            return sn;
-        }
-    }
-
-    return boost::none;
-}
-
-boost::optional<sn_record_t>
-Swarm::find_node_by_ed25519_pk(const std::string& pk) const {
-
-    for (const auto& sn : all_funded_nodes_) {
-        if (sn.pubkey_ed25519_hex() == pk) {
-            return sn;
-        }
-    }
-
-    return boost::none;
-}
-
-boost::optional<sn_record_t>
-Swarm::find_node_by_x25519_bin(const std::string& pk) const {
-
-    for (const auto& sn : all_funded_nodes_) {
-        if (sn.pubkey_x25519_bin() == pk) {
-            return sn;
-        }
-    }
-
-    return boost::none;
 }
 
 boost::optional<sn_record_t>

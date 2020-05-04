@@ -11,10 +11,6 @@ void make_https_request(boost::asio::io_context& ioc, const std::string& ip,
                         const std::shared_ptr<request_t>& req,
                         http_callback_t&& cb);
 
-void make_https_request(boost::asio::io_context& ioc, const std::string& url,
-                        const std::shared_ptr<request_t>& req,
-                        http_callback_t&& cb);
-
 class HttpsClientSession
     : public std::enable_shared_from_this<HttpsClientSession> {
 
@@ -39,9 +35,7 @@ class HttpsClientSession
     /// sent to multiple snodes
     std::shared_ptr<request_t> req_;
     response_t res_;
-
-    // Snode's pub key (none if signature verification is not used / not a snode)
-    boost::optional<std::string> server_pub_key_b32z_;
+    std::string server_pub_key_b32z;
 
     bool used_callback_ = false;
 
@@ -51,9 +45,8 @@ class HttpsClientSession
 
     void on_read(boost::system::error_code ec, std::size_t bytes_transferred);
 
-    void
-    trigger_callback(SNodeError error, std::shared_ptr<std::string>&& body,
-                     boost::optional<response_t> raw_response = boost::none);
+    void trigger_callback(SNodeError error,
+                          std::shared_ptr<std::string>&& body);
 
     void on_handshake(boost::system::error_code ec);
     bool verify_signature();
@@ -66,8 +59,7 @@ class HttpsClientSession
     HttpsClientSession(boost::asio::io_context& ioc, ssl::context& ssl_ctx,
                        tcp::resolver::results_type resolve_results,
                        const std::shared_ptr<request_t>& req,
-                       http_callback_t&& cb,
-                       boost::optional<const std::string&> sn_pubkey_b32z);
+                       http_callback_t&& cb, const std::string& sn_pubkey_b32z);
 
     // initiate the client connection
     void start();

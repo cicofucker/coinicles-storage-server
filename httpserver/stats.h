@@ -1,9 +1,9 @@
 #pragma once
 
 #include "loki_common.h"
+#include <ctime>
 #include <deque>
 #include <unordered_map>
-#include <atomic>
 
 namespace loki {
 
@@ -63,13 +63,7 @@ class all_stats_t {
     // Number of requests after the latest x min interval
     uint64_t recent_retrieve_requests = 0;
 
-    uint64_t previous_period_proxy_requests = 0;
-    std::atomic<uint64_t> recent_proxy_requests{0};
-
-    uint64_t previous_period_onion_requests = 0;
-    std::atomic<uint64_t> recent_onion_requests{0};
-
-    time_point_t reset_time_ = std::chrono::steady_clock::now();
+    time_t reset_time_ = time(nullptr);
     // =============================
 
     /// update period moving recent request counters to
@@ -77,12 +71,8 @@ class all_stats_t {
     void next_period() {
         previous_period_store_requests = recent_store_requests;
         previous_period_retrieve_requests = recent_retrieve_requests;
-        previous_period_proxy_requests = recent_proxy_requests.load();
-        previous_period_onion_requests = recent_onion_requests.load();
         recent_store_requests = 0;
         recent_retrieve_requests = 0;
-        recent_proxy_requests = 0;
-        recent_onion_requests = 0;
     }
 
   public:
@@ -111,14 +101,6 @@ class all_stats_t {
     // remove old test entries and reset counters, update reset time
     void cleanup();
 
-    void bump_proxy_requests() {
-        recent_proxy_requests++;
-    }
-
-    void bump_onion_requests() {
-        recent_proxy_requests++;
-    }
-
     void bump_store_requests() {
         total_client_store_requests++;
         recent_store_requests++;
@@ -134,18 +116,6 @@ class all_stats_t {
     }
 
     uint64_t get_recent_store_requests() const { return recent_store_requests; }
-
-    uint64_t get_recent_proxy_requests() const { return recent_proxy_requests; }
-
-    uint64_t get_previous_period_proxy_requests() const {
-        return previous_period_proxy_requests;
-    }
-
-    uint64_t get_recent_onion_requests() const { return recent_onion_requests; }
-
-    uint64_t get_previous_period_onion_requests() const {
-        return previous_period_onion_requests;
-    }
 
     uint64_t get_previous_period_store_requests() const {
         return previous_period_store_requests;
@@ -163,7 +133,7 @@ class all_stats_t {
         return previous_period_retrieve_requests;
     }
 
-    time_point_t get_reset_time() const { return reset_time_; }
+    time_t get_reset_time() const { return reset_time_; }
 };
 
 } // namespace loki

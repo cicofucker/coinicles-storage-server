@@ -7,19 +7,15 @@ namespace loki {
 
 struct command_line_options {
     uint16_t port;
-    std::string lokid_rpc_ip = "127.0.0.1";
-    uint16_t lokid_rpc_port = 22023; // Or 38157 if `testnet`
-    uint16_t lmq_port;
+    uint16_t lokid_rpc_port = 32023; // Or 38157 if `testnet`
     bool force_start = false;
     bool print_version = false;
     bool print_help = false;
     bool testnet = false;
     std::string ip;
     std::string log_level = "info";
+    std::string lokid_key_path;
     std::string data_dir;
-    std::string lokid_key; // test only (but needed for backwards compatibility)
-    std::string lokid_x25519_key; // test only
-    std::string lokid_ed25519_key; // test only
 };
 
 class command_line_parser {
